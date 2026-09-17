@@ -1,0 +1,37 @@
+# Keep source code and Keil project files tracked.
+# Ignore everything else by default.
+*
+!*/
+!*.c
+!*.h
+!*.cpp
+!*.hpp
+!*.cc
+!*.cxx
+!*.hxx
+!*.s
+!*.asm
+!*.inc
+!*.uvproj
+!*.uvopt
+!.gitignore
+
+# workspace / editor files
+*.code-workspace
+*.uvgui.*
+/.vscode/
+/.settings/
+/.eide/
+/.eide.usr.ctx.json
+
+# project output
+/build/
+/bin/
+/obj/
+/out/
+/Objects/
+/Listings/
+
+# eide template
+*.ept
+*.eide-template
