@@ -1,0 +1,10 @@
+".\Objects\main.obj",
+".\Objects\Delay.obj",
+".\Objects\GPIO.obj",
+".\Objects\NVIC.obj",
+".\Objects\UART.obj",
+".\Objects\UART_Isr.obj",
+".\Objects\Nixie.obj" 
+TO ".\Objects\stc8h8k64u" 
+PRINT(".\Listings\stc8h8k64u.m51") RAMSIZE(256) 
+DISABLEWARNING (16) 

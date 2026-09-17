@@ -1,0 +1,97 @@
+C51 COMPILER V9.60.7.0   NIXIE                                                             05/21/2026 20:20:12 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE NIXIE
+OBJECT MODULE PLACED IN .\Objects\Nixie.obj
+COMPILER INVOKED BY: D:\keil_v5\C51\BIN\C51.EXE Nixie.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\Nix
+                    -ie.lst) OBJECT(.\Objects\Nixie.obj)
+
+line level    source
+
+   1          #include "Nixie.h"
+   2          
+   3          // 索引对应表格参见：
+   4          // https://www.yuque.com/mikejiangsky/ca1cyy/sk0cxccrvps7gnuv#ZxeBQ
+   5          // 内容0~9，刚好下标也是0~9
+   6          u8 code LED_TABLE[] = 
+   7          {
+   8                  // 0    1        2      -> 9    (索引012...9)
+   9                  0xC0,0xF9,0xA4,0xB0,0x99,0x92,0x82,0xF8,0x80,0x90,
+  10                  // 0.  1. 2. -> 9.      (索引10,11,12....19)
+  11              0x40,0x79,0x24,0x30,0x19,0x12,0x02,0x78,0x00,0x10,
+  12                  // . -                                          (索引20,21)
+  13                  0x7F, 0xBF,
+  14                  // AbCdEFHJLPqU         (索引22,23,24....33)
+  15                  0x88,0x83,0xC6,0xA1,0x86,0x8E,0x89,0xF1,0xC7,0x8C,0x98,0xC1
+  16          };
+  17          
+  18          // 初始化
+  19          void Nixie_init() {
+  20   1              // 推挽  驱动能力强
+  21   1              P4_MODE_OUT_PP(GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_4);
+  22   1              
+  23   1              Nixie_clear(); // 初始化完，所有数码管默认是灭的
+  24   1      }
+  25          
+  26          // num: 控制显示的什么内容
+  27          // idx: 控制显示哪几个显示
+  28          void Nixie_show(u8 num, u8 idx) {
+  29   1              char i;  // 有-操作，不要用u8
+  30   1              // 先放内容
+  31   1              for (i = 7; i >= 0; i--) {
+  32   2                      // 取出第i位，给数据引脚赋值
+  33   2                      NIX_DI = num >> i & 1;
+  34   2                      
+  35   2                      // 移位 0 -> 1
+  36   2                      NIX_SCK = 0;
+  37   2                      NOP2();
+  38   2                      NIX_SCK = 1;
+  39   2                      NOP2();
+  40   2              }
+  41   1              
+  42   1              // 再放位置
+  43   1              for (i = 7; i >= 0; i--) {
+  44   2                      // 取出第i位，给数据引脚赋值
+  45   2                      NIX_DI = idx >> i & 1;
+  46   2                      
+  47   2                      // 移位 0 -> 1
+  48   2                      NIX_SCK = 0;
+  49   2                      NOP2();
+  50   2                      NIX_SCK = 1;
+  51   2                      NOP2();
+  52   2              }
+  53   1              
+  54   1              // 锁存
+C51 COMPILER V9.60.7.0   NIXIE                                                             05/21/2026 20:20:12 PAGE 2   
+
+  55   1              NIX_RCK = 0;
+  56   1              NOP2();
+  57   1              NIX_RCK = 1;
+  58   1              NOP2();
+  59   1      }
+  60          
+  61          // num 对应的内容在数组的位置(索引)，配合自定义码表
+  62          // 码表https://www.yuque.com/mikejiangsky/ca1cyy/sk0cxccrvps7gnuv#ZxeBQ
+  63          // 除了0~9，刚好和下标一致，其它的内容，需要查表
+  64          // idx  显示在屏幕上的位置(1 -> 8)，只有1个数码管显示
+  65          void Nixie_display(u8 num, u8 idx) {
+  66   1              Nixie_show(LED_TABLE[num], 1 << (idx - 1));
+  67   1      }
+  68          
+  69          void Nixie_clear() { // 灯灭
+  70   1              Nixie_show(0xff, 0x00);
+  71   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    112    ----
+   CONSTANT SIZE    =     34    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

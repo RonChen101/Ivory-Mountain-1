@@ -1,0 +1,162 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              05/21/2026 20:20:12 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include        "GPIO.h"
+   2          #include        "Delay.h"
+   3          #include        "NVIC.h"
+   4          #include        "UART.h"
+   5          #include        "Switch.h"
+   6          #include        "Nixie.h"
+   7          
+   8          // 宏定义，给引脚起别名
+   9          #define  LED_SW     P45
+  10          #define  LED1       P27
+  11          #define  LED2       P26
+  12          #define  LED3       P15
+  13          #define  LED4       P14
+  14          #define  LED5       P23
+  15          #define  LED6       P22
+  16          #define  LED7       P21
+  17          #define  LED8       P20
+  18          
+  19          void GPIO_config() { 
+  20   1              // 串口1 P30 P31  准双向口
+  21   1              P3_MODE_IO_PU(GPIO_Pin_0 | GPIO_Pin_1);
+  22   1              
+  23   1              // LED1~LED8 灯组 准双向
+  24   1              // P45
+  25   1              P4_MODE_IO_PU(GPIO_Pin_5);
+  26   1              // P20 P21 P22 P23 P26 P27
+  27   1              P2_MODE_IO_PU(GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_6 | GPIO_Pin_7);
+  28   1              // P14 P15
+  29   1              P1_MODE_IO_PU(GPIO_Pin_4 | GPIO_Pin_5);
+  30   1      
+  31   1              // 三极管为低，导通
+  32   1              LED_SW = 0;
+  33   1              
+  34   1              // P01 震动马达 推挽，电流大一些
+  35   1              P0_MODE_OUT_PP(GPIO_Pin_1);
+  36   1              P01 = 0; // 马达默认不震动
+  37   1      }
+  38          
+  39          void UART_config(void) {
+  40   1              // >>> 记得添加 NVIC.c, UART.c, UART_Isr.c <<<
+  41   1          COMx_InitDefine             COMx_InitStructure;                                     //结构定义
+  42   1          COMx_InitStructure.UART_Mode      = UART_8bit_BRTx; //模式, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,U
+             -ART_9bit_BRTx
+  43   1          COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;                     //选择波特率发生器, BRT_Timer1, BRT_Timer2 (注意: 串
+             -口2固定使用BRT_Timer2)
+  44   1          COMx_InitStructure.UART_BaudRate  = 115200ul;                       //波特率, 一般 110 ~ 115200
+  45   1          COMx_InitStructure.UART_RxEnable  = ENABLE;                         //接收允许,   ENABLE或DISABLE
+  46   1          COMx_InitStructure.BaudRateDouble = DISABLE;                        //波特率加倍, ENABLE或DISABLE
+  47   1          UART_Configuration(UART1, &COMx_InitStructure);             //初始化串口1 UART1,UART2,UART3,UART4
+  48   1      
+  49   1              NVIC_UART1_Init(ENABLE,Priority_1);             //中断使能, ENABLE/DISABLE; 优先级(低到高) Priority_0,Priority_1,P
+             -riority_2,Priority_3
+  50   1          UART1_SW(UART1_SW_P30_P31);         // 引脚选择, UART1_SW_P30_P31,UART1_SW_P36_P37,UART1_SW_P16_P17,UART1_SW_
+             -P43_P44
+C51 COMPILER V9.60.7.0   MAIN                                                              05/21/2026 20:20:12 PAGE 2   
+
+  51   1      }
+  52          
+  53          // 串口1接收逻辑处理
+  54          void deal_uart1_recv() {
+  55   1              u8 *buf = RX1_Buffer; // 原来的数组名太长了，换个名保存一下
+  56   1              char i;
+  57   1              
+  58   1              // 帧头(2) | 命令(1) | 数据长度(1) | 数据(n) | 校验位(1) | 帧尾(1)
+  59   1              //          0  1 2  3  4   5 6
+  60   1              // 串口收到 AA AA 00 01 01 00 BB，LED灯组亮灭1次
+  61   1              // 串口收到 AA AA 00 01 02 03 BB,   数码管走马灯 1~8
+  62   1              // 串口收到 AA AA 00 01 03 02 BB，马达震动一会后停止
+  63   1              
+  64   1              // 帧头不对，就不要往下执行
+  65   1              if (buf[0] != 0xAA || buf[1] != 0xAA) return;
+  66   1              // 命令不对，就不要往下执行
+  67   1              if (buf[2] != 0x00) return;
+  68   1              // 数据长度不对，就不要往下执行
+  69   1              if (buf[3] != 0x01) return;
+  70   1              // 帧尾不对, 就不要往下执行
+  71   1              if (buf[6] != 0xBB) return;
+  72   1              
+  73   1              // 数据 和 校验值  来确定操作啥
+  74   1              if (buf[4] == 0x01 && buf[5] == 0x00) { // LED灯组亮灭1次
+  75   2                      LED8 = LED7 = LED6 = LED5 = LED4 = LED3 = LED2 = LED1 = 0; // 低电平亮
+  76   2                      delay_ms(250);
+  77   2      //              delay_ms(250);
+  78   2                      LED8 = LED7 = LED6 = LED5 = LED4 = LED3 = LED2 = LED1 = 1; // 高电平灭
+  79   2                      delay_ms(250);
+  80   2      //              delay_ms(250);
+  81   2              
+  82   2              } else if (buf[4] == 0x02 && buf[5] == 0x03) { // 数码管走马灯 1~8
+  83   2                      for (i = 1; i <= 8; i++) { // i = 1, 2, …… 8
+  84   3                              //          内容, 第几个数码
+  85   3                              Nixie_display(i, i);
+  86   3                              delay_ms(250);  
+  87   3                      }
+  88   2                      Nixie_clear(); // 灯灭
+  89   2              
+  90   2              } else if (buf[4] == 0x03 && buf[5] == 0x02) { // 马达震动一会后停止
+  91   2                      P01 = 1; // 震动
+  92   2                      delay_ms(250);
+  93   2                      delay_ms(250);
+  94   2      //              delay_ms(250);
+  95   2      //              delay_ms(250);
+  96   2                      P01 = 0; // 停止
+  97   2              }
+  98   1              
+  99   1      }
+ 100          
+ 101          void main() { // 入口
+ 102   1      //      u8 i;
+ 103   1              EA = 1;
+ 104   1              
+ 105   1              GPIO_config(); // IO配置
+ 106   1              UART_config(); // 串口
+ 107   1              Nixie_init();  // 数码管
+ 108   1              
+ 109   1              while(1) {
+ 110   2                      if(COM1.RX_TimeOut > 0) {
+ 111   3                              //超时计数
+ 112   3                              if(--COM1.RX_TimeOut == 0) {
+C51 COMPILER V9.60.7.0   MAIN                                                              05/21/2026 20:20:12 PAGE 3   
+
+ 113   4                                      if(COM1.RX_Cnt > 0) { // 接收到数据后，才能进来
+ 114   5                                              // 串口1接收逻辑处理
+ 115   5                                              deal_uart1_recv();
+ 116   5                                              
+ 117   5      //                                      // for只能为了方便遍历多个数据，有没有for，不影响数据内容
+ 118   5      //                                      for(i=0; i<COM1.RX_Cnt; i++)    {
+ 119   5      //                                              // RX1_Buffer[i]存的是接收的每个字节，写出用 TX1_write2buff
+ 120   5      //                                              TX1_write2buff(RX1_Buffer[i]); // 数据回显，可以不用
+ 121   5      //                                      }
+ 122   5                                      }
+ 123   4                                      COM1.RX_Cnt = 0;
+ 124   4                              }
+ 125   3                      }
+ 126   2      
+ 127   2                      // 不要处理的太快
+ 128   2                      delay_ms(1);
+ 129   2              }
+ 130   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    352    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      13
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
