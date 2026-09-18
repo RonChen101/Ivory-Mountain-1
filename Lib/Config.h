@@ -29,6 +29,7 @@
 
 #include "type_def.h"
 #include "STC8H.H"
+#include "RTX51TNY.H"
 #include <intrins.h>
 #include <stdlib.h>
 #include <stdio.h>

@@ -1,0 +1,79 @@
+#include "App.h"
+#include "Motors.h"
+/* 
+App_Motor
+实现循迹模块和自由移动功能
+*/
+#include "GPIO.h"
+
+#define LED1 P00 // 左1	-64
+#define LED2 P01 // 左2	-32
+#define LED3 P02 // 中	0
+#define LED4 P03 // 右1	32
+#define LED5 P04 // 右2	64
+
+
+// 初始化
+void Track_init(){
+	//准双向口	
+	P0_MODE_IO_PU(GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_4);
+}
+
+
+// 获取寻迹坐标： 高电平-不亮-压到黑线  低电平-亮起-正常反射面
+int Track_get_position() {
+	static int last_pos = 0; // 上一次状态， static 类型
+	int pos = 0;   // 当前的坐标
+	u8 cnt = 0;    // 标识几个灯压到黑线了
+//	if (LED1 == 1) {
+//		pos += -64;
+//		cnt++;
+//	}
+	if (LED2 == 1) {
+		pos += -32;
+		cnt++;
+	}
+	if (LED3 == 1) {
+		pos += 0;
+		cnt++;
+	}
+	if (LED4 == 1) {
+		pos += 32;
+		cnt++;
+	}
+//	if (LED5 == 1) {
+//		pos += 64;
+//		cnt++;
+//	}
+	if (cnt == 0) { // 没有压到黑线，返回上一次状态
+		return last_pos;
+	}
+	// 当前状态的平均值
+	pos = pos / cnt;
+	// 更新上一次状态
+	last_pos = pos;
+
+	return pos;
+}
+
+
+
+void track_task() _task_  TRACK_TASK_ID { // 巡线
+	int pos = 0;
+	char speed = 25;  // 不要太快    < 18 车动不了，压差不够
+	while(1) {
+		pos = Track_get_position();
+//		printf("pos = %d\n", pos);	
+		if (pos < 0) {  // 左拐
+			Motors_turn(speed, LEFT_M);
+		} else if (pos == 0) { // 前进
+			Motors_forward(speed, MID_M);
+		} else if (pos > 0) { // 右拐
+			Motors_turn(speed, RIGHT_M);
+		}
+		
+	
+		// 真正巡线时候，时间不能太长    15ms差不多了
+		os_wait2(K_TMO, 3); // 5 * 3 = 15ms   如果调试，时间可以长一点
+	}
+}

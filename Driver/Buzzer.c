@@ -2,7 +2,7 @@
 #include "GPIO.h"
 #include "NVIC.h"
 #include "Switch.h" // 配置外设引脚
-#include	"STC8H_PWM.h"
+#include "STC8H_PWM.h"
 
 #define BUZZER P34
 
@@ -82,42 +82,6 @@ void Buzzer_stop(void){
 //void delay_X_ms(unsigned int ms){
 //    while(ms--) delay_ms(1);
 //}
-#include 	"RTX51TNY.H"
-
-void Buzzer_demo_2tiger() { // 2只老虎
-	// 音调数组
-	static u8 code notes[] = {
-		1, 2, 3, 1,        1, 2, 3, 1,          3, 4, 5,  3, 4, 5, 
-		5, 6, 5, 4, 3, 1,  5, 6, 5, 4, 3, 1,    1, 5, 1,  1, 5, 1,
-	};
-
-	// 时延数组 1->100ms
-	static u8 code durations[] = {
-		4, 4, 4, 4,        4, 4, 4, 4,          4, 4, 8,  4, 4, 8, 
-		3, 1, 3, 1, 4, 4,  3, 1, 3, 1, 4, 4,    4, 4, 8,  4, 4, 8, 
-	};
-	
-	u8 len = 0, i = 0;
-	
-	len = sizeof(notes) / sizeof(notes[0]);
-    for(i = 0; i < len; i++){
-        // 按照指定音调输出
-        Buzzer_beep(notes[i]);
-        
-        // 每个音调后, 做休眠
-//        delay_X_ms(durations[i] * 50);
-		os_wait2(K_TMO, durations[i] * 10); 
-        
-        // 音调之间做短暂间隔
-        Buzzer_stop();
-//        delay_ms(50);
-		os_wait2(K_TMO, 10); 
-    }
-    
-    Buzzer_stop();
-	
-}
-
 void Buzzer_alarm() {  // 警告声
 	// 659 * 2
 	Buzzer_play(659 * 2);
