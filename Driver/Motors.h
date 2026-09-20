@@ -6,54 +6,58 @@
 #include	"NVIC.h"
 #include 	"Switch.h"
 
-// ×óÇ°ÂÖ left  forward
+// ï¿½ï¿½Ç°ï¿½ï¿½ left  forward
 #define 	LF_P		P16
 #define 	LF_N		P17
 
-// ÓÒÇ°ÂÖ right forward
+// ï¿½ï¿½Ç°ï¿½ï¿½ right forward
 #define 	RF_P		P14
 #define 	RF_N		P15
 
-// ×óºóÂÖ left backward
+// ï¿½ï¿½ï¿½ï¿½ï¿½ left backward
 #define 	LB_P		P22
 #define 	LB_N		P23
 
-// ÓÒºóÂÖ right backward
+// ï¿½Òºï¿½ï¿½ï¿½ right backward
 #define 	RB_P		P20
 #define 	RB_N		P21
 
 typedef struct{
-	char LF_Speed;	// ×óÇ°ÂÖËÙ¶È
-	char LB_Speed;	// ×óºóÂÖËÙ¶È
-	char RF_Speed;	// ÓÒÇ°ÂÖËÙ¶È
-	char RB_Speed;	// ÓÒºóÂÖËÙ¶È
+	char LF_Speed;	// ï¿½ï¿½Ç°ï¿½ï¿½ï¿½Ù¶ï¿½
+	char LB_Speed;	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½
+	char RF_Speed;	// ï¿½ï¿½Ç°ï¿½ï¿½ï¿½Ù¶ï¿½
+	char RB_Speed;	// ï¿½Òºï¿½ï¿½ï¿½ï¿½Ù¶ï¿½
 }MotorSpeed;
 
 typedef enum{
 	LEFT_M, MID_M , RIGHT_M
 }MotorsMode;
 
-// ³õÊ¼»¯
+// ï¿½ï¿½Ê¼ï¿½ï¿½
 void Motors_init();
 
-// speed£ºËÙ¶È 0~100  mode£º LEFT_M×óÇ° , MID_MÇ°½ø , RIGHT_MÓÒÇ°
+// speedï¿½ï¿½ï¿½Ù¶ï¿½ 0~100  modeï¿½ï¿½ LEFT_Mï¿½ï¿½Ç° , MID_MÇ°ï¿½ï¿½ , RIGHT_Mï¿½ï¿½Ç°
+// å”¯ä¸€PWMå…¥å£ï¼šç›´æ¥è®¾ç½®å››è½®é€Ÿåº¦ -100~100ï¼ˆLFå·¦å‰ LBå·¦å RFå³å‰ RBå³åï¼‰
+// æ‰€æœ‰åŠ¨ä½œå‡½æ•°æœ€ç»ˆéƒ½ç»ç”±å®ƒè¾“å‡ºï¼Œè·¨ä»»åŠ¡è°ƒç”¨åªå…è®¸é€šè¿‡è¿™ä¸€ä¸ªå†™è€…
+void Motors_apply(char lf_speed, char lb_speed, char rf_speed, char rb_speed);
+
 void Motors_forward(char speed, MotorsMode mode);
 
-// speed£ºËÙ¶È 0~100  mode£º LEFT_M×óºó , MID_MºóÍË , RIGHT_MÓÒºó
+// speedï¿½ï¿½ï¿½Ù¶ï¿½ 0~100  modeï¿½ï¿½ LEFT_Mï¿½ï¿½ï¿½ , MID_Mï¿½ï¿½ï¿½ï¿½ , RIGHT_Mï¿½Òºï¿½
 void Motors_backward(char speed , MotorsMode mode);
 
-// speed£ºËÙ¶È 0~100  mode£º LEFT_M×óÆ½ÒÆ £¬RIGHT_MÓÒÆ½ÒÆ
+// speedï¿½ï¿½ï¿½Ù¶ï¿½ 0~100  modeï¿½ï¿½ LEFT_Mï¿½ï¿½Æ½ï¿½ï¿½ ï¿½ï¿½RIGHT_Mï¿½ï¿½Æ½ï¿½ï¿½
 void Motors_translate(char speed , MotorsMode mode);
 
-// Ë³Ê±Õë (Clockwise): ÏëÏóÒ»¸öÊ±ÖÓ£¬Ö¸Õë´Ó12µã×ßÏò1µã¡¢2µã¡¢3µã¡£ÔÚÊ±ÖÓµÄÉÏ°ë²¿·Ö£¬Ö¸ÕëÊÇÏòÓÒÒÆ¶¯µÄ¡£ËùÒÔ¡°ÏòÓÒ×ª¡±¾ÍÊÇË³Ê±Õë¡£
-// ÄæÊ±Õë (Counter-clockwise): ÓëÊ±ÖÓÖ¸ÕëÏà·´µÄ·½Ïò£¬´Ó12µã×ßÏò11µã¡¢10µã¡£ÔÚÊ±ÖÓµÄÉÏ°ë²¿·Ö£¬Ö¸ÕëÊÇÏò×óÒÆ¶¯µÄ¡£ËùÒÔ¡°Ïò×ó×ª¡±¾ÍÊÇÄæÊ±Õë¡£
-// speed£ºËÙ¶È 0~100  mode£º LEFT_MÏò×óĞı×ª(ÄæÊ±Õë) , RIGHT_MÏòÓÒĞı×ª(Ë³Ê±Õë)
+// Ë³Ê±ï¿½ï¿½ (Clockwise): ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Ê±ï¿½Ó£ï¿½Ö¸ï¿½ï¿½ï¿½12ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½1ï¿½ã¡¢2ï¿½ã¡¢3ï¿½ã¡£ï¿½ï¿½Ê±ï¿½Óµï¿½ï¿½Ï°ë²¿ï¿½Ö£ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ¶ï¿½ï¿½Ä¡ï¿½ï¿½ï¿½ï¿½Ô¡ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë³Ê±ï¿½ë¡£
+// ï¿½ï¿½Ê±ï¿½ï¿½ (Counter-clockwise): ï¿½ï¿½Ê±ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½à·´ï¿½Ä·ï¿½ï¿½ò£¬´ï¿½12ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½11ï¿½ã¡¢10ï¿½ã¡£ï¿½ï¿½Ê±ï¿½Óµï¿½ï¿½Ï°ë²¿ï¿½Ö£ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ¶ï¿½ï¿½Ä¡ï¿½ï¿½ï¿½ï¿½Ô¡ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ë¡£
+// speedï¿½ï¿½ï¿½Ù¶ï¿½ 0~100  modeï¿½ï¿½ LEFT_Mï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ª(ï¿½ï¿½Ê±ï¿½ï¿½) , RIGHT_Mï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ª(Ë³Ê±ï¿½ï¿½)
 void Motors_around(char speed , MotorsMode mode);
 
-// speed£ºËÙ¶È 0~100  mode£º LEFT_M×ó×ª , RIGHT_MÓÒ×ª
+// speedï¿½ï¿½ï¿½Ù¶ï¿½ 0~100  modeï¿½ï¿½ LEFT_Mï¿½ï¿½×ª , RIGHT_Mï¿½ï¿½×ª
 void Motors_turn(char speed ,  MotorsMode mode);
 
-void Motors_move(char x, char y); // ÉùÃ÷
+void Motors_move(char x, char y); // ï¿½ï¿½ï¿½ï¿½
 
 // Í£Ö¹
 void Motors_stop();

@@ -1,6 +1,6 @@
+#include "App_RC.h"
 #include "UART.h"
-#include "App.h"
-#include "Motors.h" 
+#include "App_Vehicle.h"
 #include "Buzzer.h"
 #include "Light.h"
 
@@ -45,111 +45,75 @@ D: 开启/关闭巡线
 4. 运动控制 (无巡线时生效)
     B/C键: 旋转 (电平触发：按住持续生效)
     摇杆控制: 只有在没有按下旋转按键时，摇杆才生效
+
+本模块只负责"协议解析 -> 意图"，车辆状态全部由 App_Vehicle 管理
 *****************************************/
-// value不能是char类型，数据会溢出
-// 限制速度值，只能在 ~100 - 100 区间
-static char LimitSpeed(int value){ 
-	if (value > 100) return 100;
-	else if (value < -100) return -100;
-	
-	return value;
-}
 
-
-void do_work_app() { // RX2_Buffer 全局数组，蓝牙接收到的数据，放在这
-	u8 * buf = RX2_Buffer;
-//	u8 i;
+// 解析一帧蓝牙数据（RX2_Buffer 全局数组，len = COM2.RX_Cnt）
+void RC_process_frame(u8 * buf, u8 len) {
 	char x, y;
-	
-	// static变量，函数调用完毕不释放
-	static u8 led_flag = 0;     // 1:灯亮, 0:灯灭
-	static u8 is_tracking = 0;  // 1:巡线开启, 0:关闭
-	static u8 is_turning = 0; 	// 1:正在原地旋转, 0:未旋转
-	
-	// 提取当前按键状态
 	u8 cur_A = buf[4];
 	u8 cur_B = buf[5];
 	u8 cur_C = buf[6];
 	u8 cur_D = buf[7];
-	
-//	printf("===================================\n");
-//	for(i=0; i < 8; i++) {
-//		printf("0x%02X ", (int)buf[i]);
-//	}
-//	printf("\n===================================\n");
-	
-	// 处理帧头
-	if (buf[0] != 0xDD || buf[1] != 0x77) {
-		printf("帧头不对\n");
+
+	// static变量，函数调用完毕不释放（记录上一帧按键状态，用于边缘检测）
+	static u8 prev_A = 0;
+	static u8 prev_D = 0;
+	static u8 led_flag = 0;     // 1:灯亮, 0:灯灭
+
+	if (len < 8) {  // 半截帧不处理
 		return;
 	}
-	
+
+	// 处理帧头
+	if (buf[0] != 0xDD || buf[1] != 0x77) {
+		printf("frame header error\n");
+		return;
+	}
+
 //	1. A键: 蜂鸣器/车灯 (边缘触发：只在按下的瞬间执行一次)
-	if (cur_A) { // 只要按下了，为1，非0就是真
-//		printf("蜂鸣器\n");
+	if (cur_A && !prev_A) { // 上一帧没按下，这一帧按下
 		Buzzer_alarm();  // 警告声
 		if (led_flag == 0) { // 灯是灭的，需要亮
-//			printf("灯亮\n");
 			Light_on(ALL);// 全部亮
 		} else { // 灯是亮的，需要灭
-//			printf("灯灭\n");
 			Light_off(ALL);// 全部灭
 		}
 		// 标志位状态翻转
 		led_flag = !led_flag;
 	}
-	
-	
+	prev_A = cur_A;
+
 //	2. D键: 开启/关闭巡线 (边缘触发)
-	if (cur_D) { // 只要按下了，为1，非0就是真
-		if (is_tracking == 0) { // 没有巡线，需要开启巡线
-//			printf("开启巡线任务\n");
-			os_create_task(TRACK_TASK_ID);
-			
-		} else { // 有巡线，关闭
-//			printf("删除巡线任务\n");
-			os_delete_task(TRACK_TASK_ID); 
-		
-			Motors_stop(); // 删除任务不能停止电机，人为停止
+	if (cur_D && !prev_D) {
+		if (Vehicle_get_mode() == VEH_TRACKING) { // 巡线中，关闭
+			Vehicle_set_mode(VEH_MANUAL);
+		} else { // 没有巡线，开启巡线
+			Vehicle_set_mode(VEH_TRACKING);
 		}
-		is_tracking = !is_tracking;
 	}
-	
+	prev_D = cur_D;
+
 //	3. 互斥锁：如果开启了巡线，屏蔽手动驾驶，直接退出
-	if (is_tracking) return;
-	
-	
+	if (Vehicle_get_mode() == VEH_TRACKING) return;
+
+
 //	4. 运动控制 (无巡线时生效)
 //		B/C键: 旋转 (电平触发：按住持续生效)
-	// B: 左旋转: 按下开始转,抬起停止转
 	if (cur_B) { // 按下B
-		if (is_turning == 0) {
-//			printf("左旋转\n");
-			Motors_around(30, LEFT_M);
-			is_turning = 1;
-		}
+		Vehicle_rotate(30, LEFT_M);
 	} else if (cur_C) { // 按下C
-		if (is_turning == 0) {
-//			printf("右旋转\n");
-			Motors_around(30, RIGHT_M);
-			is_turning = 1;
-		}
+		Vehicle_rotate(30, RIGHT_M);
 	} else { // B和C抬起
-		if (is_turning == 1) {
-			printf("停止旋转\n");
-			
-			is_turning = 0;
-		}
+		Vehicle_stop_rotate();
 	}
-	
-	if (is_turning == 1) return;  // 旋转时候，摇杆不能工作
-	
+
+	if (Vehicle_is_rotating()) return;  // 旋转时候，摇杆不能工作
+
 //    摇杆控制: 只有在没有按下旋转按键时，摇杆才生效
 	x = buf[2], y = buf[3];
-//	printf("(x, y) = (%d, %d)\n", (int)x, (int)y);
-//	printf("左前=%d, 左后=%d, 右前=%d, 右后=%d\n", (int)(x+y), (int)(y-x), (int)(y-x), (int)(x+y));
-//	printf("[限制]左前=%d, 左后=%d, 右前=%d, 右后=%d\n", (int)LimitSpeed(x+y), (int)LimitSpeed(y-x), (int)LimitSpeed(y-x), (int)LimitSpeed(x+y));
-	Motors_move(x, y);
+	Vehicle_manual_move(x, y);
 }
 
 void uart2_recv_task() _task_  UART2_TASK_ID { // 串口2接收到的数据，串口2就是蓝牙
@@ -159,10 +123,10 @@ void uart2_recv_task() _task_  UART2_TASK_ID { // 串口2接收到的数据，�
 			//超时计数
 			if(--COM2.RX_TimeOut == 0) {
 				if(COM2.RX_Cnt > 0) {
-					
+
 					// 蓝牙数据的处理
-					do_work_app();
-					
+					RC_process_frame(RX2_Buffer, COM2.RX_Cnt);
+
 					for(i=0; i<COM2.RX_Cnt; i++)	{
 						// 串口2收到的数据放在 RX2_Buffer[i]  通过串口1发送 TX1_write2buff
 						TX1_write2buff(RX2_Buffer[i]);
@@ -171,7 +135,7 @@ void uart2_recv_task() _task_  UART2_TASK_ID { // 串口2接收到的数据，�
 				COM2.RX_Cnt = 0;
 			}
 		}
-		
+
 		// 不要处理的太快
 		os_wait2(K_TMO, 1);
 	}

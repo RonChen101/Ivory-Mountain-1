@@ -1,50 +1,39 @@
 #include "App.h"
+#include "App_Track.h"
+#include "App_Vehicle.h"
+#include "TrackSensor.h"
 #include "Motors.h"
-/* 
-App_Motor
-实现循迹模块和自由移动功能
+
+/*
+App_Track
+巡线控制：读传感器位图 -> 计算偏移 -> 差速转向
+算法与原 App_Motor.c 完全一致，仅传感器读取改为 TrackSensor 驱动
 */
-#include "GPIO.h"
-
-#define LED1 P00 // 左1	-64
-#define LED2 P01 // 左2	-32
-#define LED3 P02 // 中	0
-#define LED4 P03 // 右1	32
-#define LED5 P04 // 右2	64
-
 
 // 初始化
-void Track_init(){
-	//准双向口	
-	P0_MODE_IO_PU(GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_4);
+void Track_init(void) {
+	TrackSensor_init();
 }
 
-
-// 获取寻迹坐标： 高电平-不亮-压到黑线  低电平-亮起-正常反射面
+// 计算偏移坐标：只有中间3路参与计算（左右边缘2路保留在位图中备用）
 int Track_get_position() {
 	static int last_pos = 0; // 上一次状态， static 类型
 	int pos = 0;   // 当前的坐标
 	u8 cnt = 0;    // 标识几个灯压到黑线了
-//	if (LED1 == 1) {
-//		pos += -64;
-//		cnt++;
-//	}
-	if (LED2 == 1) {
+	u8 bitmap = TrackSensor_read();
+
+	if (bitmap & TS_LEFT2) {
 		pos += -32;
 		cnt++;
 	}
-	if (LED3 == 1) {
-		pos += 0;
+	if (bitmap & TS_MID) {
+		// 中间权重 0
 		cnt++;
 	}
-	if (LED4 == 1) {
+	if (bitmap & TS_RIGHT1) {
 		pos += 32;
 		cnt++;
 	}
-//	if (LED5 == 1) {
-//		pos += 64;
-//		cnt++;
-//	}
 	if (cnt == 0) { // 没有压到黑线，返回上一次状态
 		return last_pos;
 	}
@@ -57,13 +46,12 @@ int Track_get_position() {
 }
 
 
-
 void track_task() _task_  TRACK_TASK_ID { // 巡线
 	int pos = 0;
 	char speed = 25;  // 不要太快    < 18 车动不了，压差不够
 	while(1) {
 		pos = Track_get_position();
-//		printf("pos = %d\n", pos);	
+//		printf("pos = %d\n", pos);
 		if (pos < 0) {  // 左拐
 			Motors_turn(speed, LEFT_M);
 		} else if (pos == 0) { // 前进
@@ -71,8 +59,8 @@ void track_task() _task_  TRACK_TASK_ID { // 巡线
 		} else if (pos > 0) { // 右拐
 			Motors_turn(speed, RIGHT_M);
 		}
-		
-	
+
+
 		// 真正巡线时候，时间不能太长    15ms差不多了
 		os_wait2(K_TMO, 3); // 5 * 3 = 15ms   如果调试，时间可以长一点
 	}

@@ -1,225 +1,174 @@
 #include "Motors.h"
 
-// ³õÊ¼»¯
+// åˆå§‹åŒ–
 void Motors_init() {
-	EAXSFR();		/* À©Õ¹¼Ä´æÆ÷·ÃÎÊÊ¹ÄÜ */
-	
+	EAXSFR();		/* æ‰©å±•å¯„å­˜å™¨è®¿é—®ä½¿èƒ½ */
+
 	// P14 15 16 17
 	P1_MODE_IO_PU(GPIO_Pin_4 | GPIO_Pin_5 | GPIO_Pin_6 | GPIO_Pin_7);
 	// P20 21 22 23
 	P2_MODE_IO_PU(GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3);
-	
-	// Ä¬ÈÏÉèÖÃÎªµÍ
+
+	// é»˜è®¤è½®å­ä¸ºåœ
 	LF_P = LF_N = RF_P = RF_N = LB_P = LB_N = RB_P = RB_N = 0;
 }
 
 /*
- -100      0         100     ËÙ¶È       speed
-// 0 ----- 50 ------ 100     Õ¼¿Õ±È
-// ºóÍË    Í£Ö¹      Ç°½ø
-// ×î¿ì              ×î¿ì
-speed=0 ===> 50
-	speed/2 + 50
-speed=-100 ===> 0
-	speed/2 + 50   
-speed=100 ===> 100
-	speed/2 + 50  
+ -100      0         100     é€Ÿåº¦       speed
+// 0 ----- 50 ------ 100     å ç©ºæ¯”
+// å€’é€€    åœæ­¢      å‰è¿›
+speed=0   ===> 50   speed/2 + 50
+speed=-100 ===> 0   speed/2 + 50
+speed=100 ===> 100  speed/2 + 50
 */
 
-// -100 --------- 0 --------- 100		ËÙ¶È
-//ºóÍË×î´óËÙ¶È	  0			Ç°½ø×î´óËÙ¶È
-// 0 ----------  50 --------- 100		PWMÕ¼¿Õ±È
+// -100 --------- 0 --------- 100		é€Ÿåº¦
+// å€’é€€è½®é€Ÿåº¦	  0			å‰è¿›é€Ÿåº¦
+// 0 ----------  50 --------- 100		PWMå ç©ºæ¯”
 static char speed2duty(char speed) {
-    // speed > 0 Ç°½ø
-    // speed < 0 ºóÍË
+    // speed > 0 å‰è¿›
+    // speed < 0 åé€€
     return speed / 2 + 50;
 }
 
 #define PERIOD (MAIN_Fosc / 1000)
-static void	PWM_config(MotorSpeed ms) // -100 --------- 0 --------- 100		ËÙ¶È
+static void	PWM_config(MotorSpeed ms) // -100 --------- 0 --------- 100		é€Ÿåº¦
 {
     PWMx_InitDefine		PWMx_InitStructure;
-		
-	// ÅäÖÃPWM1  ÓÒºóÂÖ  P20  P21
-	PWMx_InitStructure.PWM_Mode    		= CCMRn_PWM_MODE1;	//Ä£Ê½,		CCMRn_FREEZE,CCMRn_MATCH_VALID,CCMRn_MATCH_INVALID,CCMRn_ROLLOVER,CCMRn_FORCE_INVALID,CCMRn_FORCE_VALID,CCMRn_PWM_MODE1,CCMRn_PWM_MODE2
-	PWMx_InitStructure.PWM_Duty    		= (speed2duty(ms.RB_Speed) / 100.0) * PERIOD;	//PWMÕ¼¿Õ±ÈÊ±¼ä, 0~Period
-	PWMx_InitStructure.PWM_EnoSelect	= (ms.RB_Speed != 0) ? (ENO1P | ENO1N) : 0;	//Êä³öÍ¨µÀÑ¡Ôñ,	ENO1P,ENO1N,ENO2P,ENO2N,ENO3P,ENO3N,ENO4P,ENO4N / ENO5P,ENO6P,ENO7P,ENO8P
-	PWM_Configuration(PWM1, &PWMx_InitStructure);			//³õÊ¼»¯PWM
-	// ÅäÖÃPWM2  ×óºóÂÖ  P22  P23
-	PWMx_InitStructure.PWM_Mode    		= CCMRn_PWM_MODE1;	//Ä£Ê½,		CCMRn_FREEZE,CCMRn_MATCH_VALID,CCMRn_MATCH_INVALID,CCMRn_ROLLOVER,CCMRn_FORCE_INVALID,CCMRn_FORCE_VALID,CCMRn_PWM_MODE1,CCMRn_PWM_MODE2
-	PWMx_InitStructure.PWM_Duty    		= (speed2duty(ms.LB_Speed) / 100.0) * PERIOD;	//PWMÕ¼¿Õ±ÈÊ±¼ä, 0~Period
-	PWMx_InitStructure.PWM_EnoSelect    = (ms.LB_Speed != 0) ? (ENO2P | ENO2N) : 0;	//Êä³öÍ¨µÀÑ¡Ôñ,	ENO1P,ENO1N,ENO2P,ENO2N,ENO3P,ENO3N,ENO4P,ENO4N / ENO5P,ENO6P,ENO7P,ENO8P
-	PWM_Configuration(PWM2, &PWMx_InitStructure);			//³õÊ¼»¯PWM
-	// ÅäÖÃPWM3  ÓÒÇ°ÂÖ  P14 P15
-	// 0 10 20 30 40   ÄæÊ±Õë×ª(·´×ª)  ËÙ¶È ±äĞ¡
-	// 50              Í£Ö¹
-	// 60 70 80 90 100 Ë³Ê±Õë×ª(Õı×ª)  ËÙ¶È ±ä´ó
+
+	// é…ç½®PWM1  å³åè½®  P20  P21
+	PWMx_InitStructure.PWM_Mode    		= CCMRn_PWM_MODE1;	//æ¨¡å¼,	CCMRn_FREEZE,CCMRn_MATCH_VALID,CCMRn_MATCH_INVALID,CCMRn_ROLLOVER,CCMRn_FORCE_INVALID,CCMRn_FORCE_VALID,CCMRn_PWM_MODE1,CCMRn_PWM_MODE2
+	PWMx_InitStructure.PWM_Duty    		= (speed2duty(ms.RB_Speed) / 100.0) * PERIOD;	//PWMå ç©ºæ¯”æ—¶é—´, 0~Period
+	PWMx_InitStructure.PWM_EnoSelect	= (ms.RB_Speed != 0) ? (ENO1P | ENO1N) : 0;	//è¾“å‡ºé€šé“é€‰æ‹©,	ENO1P,ENO1N,ENO2P,ENO2N,ENO3P,ENO3N,ENO4P,ENO4N / ENO5P,ENO6P,ENO7P,ENO8P
+	PWM_Configuration(PWM1, &PWMx_InitStructure);			//åˆå§‹åŒ–PWM
+	// é…ç½®PWM2  å·¦åè½®  P22  P23
+	PWMx_InitStructure.PWM_Mode    		= CCMRn_PWM_MODE1;	//æ¨¡å¼
+	PWMx_InitStructure.PWM_Duty    		= (speed2duty(ms.LB_Speed) / 100.0) * PERIOD;	//PWMå ç©ºæ¯”æ—¶é—´, 0~Period
+	PWMx_InitStructure.PWM_EnoSelect    = (ms.LB_Speed != 0) ? (ENO2P | ENO2N) : 0;	//è¾“å‡ºé€šé“é€‰æ‹©
+	PWM_Configuration(PWM2, &PWMx_InitStructure);			//åˆå§‹åŒ–PWM
+	// é…ç½®PWM3  å³å‰è½®  P14 P15
+	// 0 10 20 30 40   é€†æ—¶é’ˆè½¬(åè½¬)  é€Ÿåº¦ å˜å°
+	// 50              åœæ­¢
+	// 60 70 80 90 100 é¡ºæ—¶é’ˆè½¬(æ­£è½¬)  é€Ÿåº¦ å˜å¤§
 	// 0 ----- 50 ------ 100
-	// ºóÍË    Í£Ö¹      Ç°½ø
-	// ×î¿ì              ×î¿ì
-	PWMx_InitStructure.PWM_Mode    		= CCMRn_PWM_MODE1;	//Ä£Ê½,		CCMRn_FREEZE,CCMRn_MATCH_VALID,CCMRn_MATCH_INVALID,CCMRn_ROLLOVER,CCMRn_FORCE_INVALID,CCMRn_FORCE_VALID,CCMRn_PWM_MODE1,CCMRn_PWM_MODE2
-	PWMx_InitStructure.PWM_Duty    		= (speed2duty(ms.RF_Speed) / 100.0) * PERIOD;	//PWMÕ¼¿Õ±ÈÊ±¼ä, 0~Period
-	// PWMx_InitStructure.PWM_EnoSelect    = ENO3P | ENO3N;	//Êä³öÍ¨µÀÑ¡Ôñ,	ENO1P,ENO1N,ENO2P,ENO2N,ENO3P,ENO3N,ENO4P,ENO4N / ENO5P,ENO6P,ENO7P,ENO8P
-	PWMx_InitStructure.PWM_EnoSelect    = (ms.RF_Speed != 0) ? (ENO3P | ENO3N) : 0;	//Êä³öÍ¨µÀÑ¡Ôñ
-	
-	PWM_Configuration(PWM3, &PWMx_InitStructure);	
-	// ÅäÖÃPWM4  ×óÇ°ÂÖ  P16  P17
-    PWMx_InitStructure.PWM_Mode    		= CCMRn_PWM_MODE1;	//Ä£Ê½,		CCMRn_FREEZE,CCMRn_MATCH_VALID,CCMRn_MATCH_INVALID,CCMRn_ROLLOVER,CCMRn_FORCE_INVALID,CCMRn_FORCE_VALID,CCMRn_PWM_MODE1,CCMRn_PWM_MODE2
-    PWMx_InitStructure.PWM_Duty    		= (speed2duty(ms.LF_Speed) / 100.0) * PERIOD;	//PWMÕ¼¿Õ±ÈÊ±¼ä, 0~Period
-    PWMx_InitStructure.PWM_EnoSelect    = (ms.LF_Speed != 0) ? (ENO4P | ENO4N) : 0;	//Êä³öÍ¨µÀÑ¡Ôñ,	ENO1P,ENO1N,ENO2P,ENO2N,ENO3P,ENO3N,ENO4P,ENO4N / ENO5P,ENO6P,ENO7P,ENO8P
+	// å€’é€€    åœæ­¢      å‰è¿›
+	PWMx_InitStructure.PWM_Mode    		= CCMRn_PWM_MODE1;	//æ¨¡å¼
+	PWMx_InitStructure.PWM_Duty    		= (speed2duty(ms.RF_Speed) / 100.0) * PERIOD;	//PWMå ç©ºæ¯”æ—¶é—´, 0~Period
+	PWMx_InitStructure.PWM_EnoSelect    = (ms.RF_Speed != 0) ? (ENO3P | ENO3N) : 0;	//è¾“å‡ºé€šé“é€‰æ‹©
+
+	PWM_Configuration(PWM3, &PWMx_InitStructure);
+	// é…ç½®PWM4  å·¦å‰è½®  P16  P17
+    PWMx_InitStructure.PWM_Mode    		= CCMRn_PWM_MODE1;	//æ¨¡å¼
+    PWMx_InitStructure.PWM_Duty    		= (speed2duty(ms.LF_Speed) / 100.0) * PERIOD;	//PWMå ç©ºæ¯”æ—¶é—´, 0~Period
+    PWMx_InitStructure.PWM_EnoSelect    = (ms.LF_Speed != 0) ? (ENO4P | ENO4N) : 0;	//è¾“å‡ºé€šé“é€‰æ‹©
     PWM_Configuration(PWM4, &PWMx_InitStructure);
 
-	// ÅäÖÃPWMA
-    PWMx_InitStructure.PWM_Period   = PERIOD - 1;			//ÖÜÆÚÊ±¼ä,   0~65535
-    PWMx_InitStructure.PWM_DeadTime = 0;					//ËÀÇø·¢ÉúÆ÷ÉèÖÃ, 0~255
-    PWMx_InitStructure.PWM_MainOutEnable= ENABLE;			//Ö÷Êä³öÊ¹ÄÜ, ENABLE,DISABLE
-    PWMx_InitStructure.PWM_CEN_Enable   = ENABLE;			//Ê¹ÄÜ¼ÆÊıÆ÷, ENABLE,DISABLE
-    PWM_Configuration(PWMA, &PWMx_InitStructure);			//³õÊ¼»¯PWMÍ¨ÓÃ¼Ä´æÆ÷,  PWMA,PWMB
+	// é…ç½®PWMA
+    PWMx_InitStructure.PWM_Period   = PERIOD - 1;			//å‘¨æœŸæ—¶é—´,   0~65535
+    PWMx_InitStructure.PWM_DeadTime = 0;					//æ­»åŒºå‘ç”Ÿå™¨è®¾ç½®, 0~255
+    PWMx_InitStructure.PWM_MainOutEnable= ENABLE;			//ä¸»è¾“å‡ºä½¿èƒ½, ENABLE,DISABLE
+    PWMx_InitStructure.PWM_CEN_Enable   = ENABLE;			//ä½¿èƒ½è®¡æ•°å™¨, ENABLE,DISABLE
+    PWM_Configuration(PWMA, &PWMx_InitStructure);			//åˆå§‹åŒ–PWMé€šç”¨å¯„å­˜å™¨,  PWMA,PWMB
 
-	// ÇĞ»»PWMÍ¨µÀ
+	// åˆ‡æ¢PWMé€šé“
 	PWM1_SW(PWM1_SW_P20_P21);			//PWM1_SW_P10_P11,PWM1_SW_P20_P21,PWM1_SW_P60_P61
 	PWM2_SW(PWM2_SW_P22_P23);			//PWM2_SW_P12_P13,PWM2_SW_P22_P23,PWM2_SW_P62_P63
 	PWM3_SW(PWM3_SW_P14_P15);			//PWM3_SW_P14_P15,PWM3_SW_P24_P25,PWM3_SW_P64_P65
 	PWM4_SW(PWM4_SW_P16_P17);			//PWM4_SW_P16_P17,PWM4_SW_P26_P27,PWM4_SW_P66_P67,PWM4_SW_P34_P33
 
-	// ³õÊ¼»¯PWMAµÄÖĞ¶Ï
+	// åˆå§‹åŒ–PWMAä¸­æ–­
     NVIC_PWM_Init(PWMA,DISABLE,Priority_0);
 }
-	
 
-// speed£ºËÙ¶È 0~100  mode£º LEFT_M×óÇ° , MID_MÇ°½ø , RIGHT_MÓÒÇ°
+
+// å”¯ä¸€PWMå…¥å£ï¼šç›´æ¥è®¾ç½®å››è½®é€Ÿåº¦ -100~100
+// æ‰€æœ‰åŠ¨ä½œå‡½æ•°æœ€ç»ˆéƒ½ç»ç”±å®ƒè¾“å‡ºï¼›è·¨ä»»åŠ¡è°ƒç”¨åªå…è®¸é€šè¿‡è¿™ä¸€ä¸ªå†™è€…ï¼Œ
+// é¿å…å¤šä¸ªä»»åŠ¡å„è‡ªç›´æ¥è°ƒ PWM_config é€ æˆ C51 å±€éƒ¨å˜é‡è¦†ç›–å±‚è¢«ç ´å
+void Motors_apply(char lf_speed, char lb_speed, char rf_speed, char rb_speed) {
+	MotorSpeed ms;
+
+	ms.LF_Speed = lf_speed;
+	ms.LB_Speed = lb_speed;
+	ms.RF_Speed = rf_speed;
+	ms.RB_Speed = rb_speed;
+
+	PWM_config(ms);
+}
+
+// speedï¼šé€Ÿåº¦ 0~100  modeï¼šLEFT_Må·¦å‰ , MID_Må‰è¿› , RIGHT_Må³å‰
 void Motors_forward(char speed, MotorsMode mode) {
-	MotorSpeed ms = {0}; // ËùÓĞ³ÉÔ±³õÊ¼»¯Îª0
-	
-	if (mode == LEFT_M){ // ×ó
-		ms.LF_Speed = 0;
-		ms.LB_Speed = speed;
-		ms.RF_Speed = speed;
-		ms.RB_Speed = 0;
-	} else if (mode == RIGHT_M) { // ÓÒ
-		ms.LF_Speed = speed;
-		ms.LB_Speed = 0;
-		ms.RF_Speed = 0;
-		ms.RB_Speed = speed;
-		
-	} else { // ÖĞ¼ä
-		ms.LF_Speed = speed;
-		ms.LB_Speed = speed;
-		ms.RF_Speed = speed;
-		ms.RB_Speed = speed;
+	if (mode == LEFT_M) { // å·¦
+		Motors_apply(0, speed, speed, 0);
+	} else if (mode == RIGHT_M) { // å³
+		Motors_apply(speed, 0, 0, speed);
+	} else { // ä¸­é—´
+		Motors_apply(speed, speed, speed, speed);
 	}
-	// µ÷ÓÃpwm, °Ñ²ÎÊı´«µİ½øÈ¥
-	PWM_config(ms);
 }
 
-// speed£ºËÙ¶È 0~100  mode£º LEFT_M×óºó , MID_MºóÍË , RIGHT_MÓÒºó
+// speedï¼šé€Ÿåº¦ 0~100  modeï¼šLEFT_Må·¦é€€ , MID_Måé€€ , RIGHT_Må³å
 void Motors_backward(char speed , MotorsMode mode) {
-	MotorSpeed ms = {0}; // ËùÓĞ³ÉÔ±³õÊ¼»¯Îª0
-	
-	if (mode == LEFT_M){ // ×ó
-		ms.LF_Speed = -speed;
-		ms.LB_Speed = 0;
-		ms.RF_Speed = 0;
-		ms.RB_Speed = -speed;
-	} else if (mode == RIGHT_M) { // ÓÒ
-		ms.LF_Speed = 0;
-		ms.LB_Speed = -speed;
-		ms.RF_Speed = -speed;
-		ms.RB_Speed = 0;
-		
-	} else { // ÖĞ¼ä
-		ms.LF_Speed = -speed;
-		ms.LB_Speed = -speed;
-		ms.RF_Speed = -speed;
-		ms.RB_Speed = -speed;
+	if (mode == LEFT_M) { // å·¦
+		Motors_apply(-speed, 0, 0, -speed);
+	} else if (mode == RIGHT_M) { // å³
+		Motors_apply(0, -speed, -speed, 0);
+	} else { // ä¸­é—´
+		Motors_apply(-speed, -speed, -speed, -speed);
 	}
-	// µ÷ÓÃpwm, °Ñ²ÎÊı´«µİ½øÈ¥
-	PWM_config(ms);
 }
 
-// speed£ºËÙ¶È 0~100  mode£º LEFT_M×óÆ½ÒÆ £¬RIGHT_MÓÒÆ½ÒÆ
+// speedï¼šé€Ÿåº¦ 0~100  modeï¼šLEFT_Må‘å¹³ç§» æˆ–RIGHT_Må³å¹³ç§»
 void Motors_translate(char speed , MotorsMode mode) {
-	MotorSpeed ms = {0}; // ¸ø½á¹¹ÌåËùÓĞ³ÉÔ±¸³ÖµÎª0
-	
-	if (mode == LEFT_M) { // ×ó
-		ms.LF_Speed = -speed;
-		ms.LB_Speed = speed;
-		ms.RF_Speed = speed;
-		ms.RB_Speed = -speed;
-	} else if (mode == RIGHT_M) { // ÓÒ
-		ms.LF_Speed = speed;
-		ms.LB_Speed = -speed;
-		ms.RF_Speed = -speed;
-		ms.RB_Speed = speed;
+	if (mode == LEFT_M) { // å·¦
+		Motors_apply(-speed, speed, speed, -speed);
+	} else if (mode == RIGHT_M) { // å³
+		Motors_apply(speed, -speed, -speed, speed);
 	}
-	
-	PWM_config(ms);
+
+	// å…¶å®ƒæ¨¡å¼ä¸åšä»»ä½•åŠ¨ä½œ
 }
 
-// speed£ºËÙ¶È 0~100  mode£º LEFT_MÏò×óĞı×ª(ÄæÊ±Õë) , RIGHT_MÏòÓÒĞı×ª(Ë³Ê±Õë)
+// speedï¼šé€Ÿåº¦ 0~100  modeï¼šLEFT_Mé€†æ—¶é’ˆæ—‹è½¬(å·¦è½¬) , RIGHT_Mé¡ºæ—¶é’ˆæ—‹è½¬(å³è½¬)
 void Motors_around(char speed , MotorsMode mode) {
-	MotorSpeed ms = {0}; // ¸ø½á¹¹ÌåËùÓĞ³ÉÔ±¸³ÖµÎª0
-	
-	if (mode == LEFT_M) { // ×ó(ÄæÊ±Õë)
-		ms.LF_Speed = -speed;
-		ms.LB_Speed = -speed;
-		ms.RF_Speed = speed;
-		ms.RB_Speed = speed;
-	} else if (mode == RIGHT_M) { // ÓÒ(Ë³Ê±Õë)
-		ms.LF_Speed = speed;
-		ms.LB_Speed = speed;
-		ms.RF_Speed = -speed;
-		ms.RB_Speed = -speed;
+	if (mode == LEFT_M) { // å·¦(é€†æ—¶é’ˆ)
+		Motors_apply(-speed, -speed, speed, speed);
+	} else if (mode == RIGHT_M) { // å³(é¡ºæ—¶é’ˆ)
+		Motors_apply(speed, speed, -speed, -speed);
 	}
-	
-	PWM_config(ms);
 }
 
-// speed£ºËÙ¶È 0~100  mode£º LEFT_M×ó×ª , RIGHT_MÓÒ×ª
+// speedï¼šé€Ÿåº¦ 0~100  modeï¼šLEFT_Må·¦è½¬ , RIGHT_Må³è½¬
 void Motors_turn(char speed ,  MotorsMode mode) {
-	MotorSpeed ms = {0}; // ¸ø½á¹¹ÌåËùÓĞ³ÉÔ±¸³ÖµÎª0
-	
-	if (mode == LEFT_M) { // ×ó
-		ms.LF_Speed = 0;
-		ms.LB_Speed = 0;
-		ms.RF_Speed = speed;
-		ms.RB_Speed = speed;
-	} else if (mode == RIGHT_M) { // ÓÒ
-		ms.LF_Speed = speed;
-		ms.LB_Speed = speed;
-		ms.RF_Speed = 0;
-		ms.RB_Speed = 0;
+	if (mode == LEFT_M) { // å·¦
+		Motors_apply(0, 0, speed, speed);
+	} else if (mode == RIGHT_M) { // å³
+		Motors_apply(speed, speed, 0, 0);
 	}
-	
-	PWM_config(ms);
 }
 
-// Í£Ö¹
+// åœæ­¢
 void Motors_stop(){
-	MotorSpeed ms = {0}; // ËùÓĞ³ÉÔ±³õÊ¼»¯Îª0
-	// µ÷ÓÃpwm, °Ñ²ÎÊı´«µİ½øÈ¥
-	PWM_config(ms);
+	Motors_apply(0, 0, 0, 0);
 }
 
-// value²»ÄÜÊÇcharÀàĞÍ£¬Êı¾İ»áÒç³ö
-// ÏŞÖÆËÙ¶ÈÖµ£¬Ö»ÄÜÔÚ ~100 - 100 Çø¼ä
-static char LimitSpeed(int value){ 
+// valueä¸èƒ½æ˜¯charç±»å‹ï¼Œæ•°æ®ä¼šæº¢å‡º
+// é™åˆ¶é€Ÿåº¦å€¼ï¼Œåªèƒ½åœ¨ ~100 - 100 åŒºé—´
+static char LimitSpeed(int value){
 	if (value > 100) return 100;
 	else if (value < -100) return -100;
-	
+
 	return value;
 }
 
 #define LIMIT  0.3
 // x, y
 void Motors_move(char x, char y) {
-	MotorSpeed ms = {0}; // ¸ø½á¹¹ÌåËùÓĞ³ÉÔ±¸³ÖµÎª0
-	
-	ms.LF_Speed = LIMIT * LimitSpeed(x+y);
-	ms.LB_Speed = LIMIT * LimitSpeed(y-x);
-	ms.RF_Speed = LIMIT * LimitSpeed(y-x);
-	ms.RB_Speed = LIMIT * LimitSpeed(x+y);
+	char lf, lb, rf, rb;
 
+	lf = LIMIT * LimitSpeed(x+y);
+	lb = LIMIT * LimitSpeed(y-x);
+	rf = LIMIT * LimitSpeed(y-x);
+	rb = LIMIT * LimitSpeed(x+y);
 
-	PWM_config(ms);
+	Motors_apply(lf, lb, rf, rb);
 }

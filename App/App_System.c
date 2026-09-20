@@ -5,66 +5,65 @@
 #include "ADC.h"
 #include "NVIC.h"
 #include "Switch.h"
-#include "Keys.h"
+#include "Motors.h"
+#include "App_Track.h"
 #include "Buzzer.h"
-#include "I2C.h"
-
+#include "Key.h"
+#include "Battery.h"
 
 void GPIO_config(void) {
-	GPIO_InitTypeDef	GPIO_InitStructure;		//Ω·ππ∂®“Â
-	// ============= UART1 P30 P31 ◊ºÀ´œÚ
-	GPIO_InitStructure.Pin  = GPIO_Pin_0 | GPIO_Pin_1;		//÷∏∂®“™≥ı ºªØµƒIO,
-	GPIO_InitStructure.Mode = GPIO_PullUp;	//÷∏∂®IOµƒ ‰»ÎªÚ ‰≥ˆ∑Ω Ω,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,GPIO_OUT_PP
-	GPIO_Inilize(GPIO_P3, &GPIO_InitStructure);//≥ı ºªØ
-	
-	// ============= UART2 P10 P11 ◊ºÀ´œÚ
-	GPIO_InitStructure.Pin  = GPIO_Pin_0 | GPIO_Pin_1;		//÷∏∂®“™≥ı ºªØµƒIO,
-	GPIO_InitStructure.Mode = GPIO_PullUp;	//÷∏∂®IOµƒ ‰»ÎªÚ ‰≥ˆ∑Ω Ω,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,GPIO_OUT_PP
-	GPIO_Inilize(GPIO_P1, &GPIO_InitStructure);//≥ı ºªØ
+	GPIO_InitTypeDef	GPIO_InitStructure;		//ÁªìÊûÑ‰ΩìÂèòÈáè
+	// ============= UART1 P30 P31 ÂáÜÂèåÂêë
+	GPIO_InitStructure.Pin  = GPIO_Pin_0 | GPIO_Pin_1;		//ÊåáÂÆöÈúÄË¶ÅÂàùÂßãÂåñÁöÑIO,
+	GPIO_InitStructure.Mode = GPIO_PullUp;	//ÊåáÂÆöIOÁöÑËæìÂÖ•ËæìÂá∫Ê®°Âºè,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,GPIO_OUT_PP
+	GPIO_Inilize(GPIO_P3, &GPIO_InitStructure);//ÂàùÂßãÂåñ
+
+	// ============= UART2 P10 P11 ÂáÜÂèåÂêë
+	GPIO_InitStructure.Pin  = GPIO_Pin_0 | GPIO_Pin_1;		//ÊåáÂÆöÈúÄË¶ÅÂàùÂßãÂåñÁöÑIO,
+	GPIO_InitStructure.Mode = GPIO_PullUp;	//ÊåáÂÆöIOÁöÑËæìÂÖ•ËæìÂá∫Ê®°Âºè,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,GPIO_OUT_PP
+	GPIO_Inilize(GPIO_P1, &GPIO_InitStructure);//ÂàùÂßãÂåñ
 }
 
 void UART_config(void) {
-	// >>> º«µ√ÃÌº” NVIC.c, UART.c, UART_Isr.c <<<
-    COMx_InitDefine		COMx_InitStructure;					//Ω·ππ∂®“Â
-	// ======================== UART1 
-    COMx_InitStructure.UART_Mode      = UART_8bit_BRTx;	//ƒ£ Ω, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,UART_9bit_BRTx
-    COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;			//—°‘Ò≤®Ãÿ¬ ∑¢…˙∆˜, BRT_Timer1, BRT_Timer2 (◊¢“‚: ¥Æø⁄2πÃ∂® π”√BRT_Timer2)
-    COMx_InitStructure.UART_BaudRate  = 115200ul;			//≤®Ãÿ¬ , “ª∞„ 110 ~ 115200
-    COMx_InitStructure.UART_RxEnable  = ENABLE;				//Ω” ’‘ –Ì,   ENABLEªÚDISABLE
-    COMx_InitStructure.BaudRateDouble = DISABLE;			//≤®Ãÿ¬ º”±∂, ENABLEªÚDISABLE
-    UART_Configuration(UART1, &COMx_InitStructure);		//≥ı ºªØ¥Æø⁄1 UART1,UART2,UART3,UART4
+	// >>> Ê≥®ÊÑè!!! NVIC.c, UART.c, UART_Isr.c <<<
+    COMx_InitDefine		COMx_InitStructure;					//ÁªìÊûÑ‰ΩìÂèòÈáè
+	// ======================== UART1
+    COMx_InitStructure.UART_Mode      = UART_8bit_BRTx;	//Ê®°Âºè, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,UART_9bit_BRTx
+    COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;			//ÈÄâÊã©Ê≥¢ÁâπÁéáÂèëÁîüÂô®, BRT_Timer1, BRT_Timer2 (Ê≥®ÊÑè: ‰∏≤Âè£2Âõ∫ÂÆö‰ΩøÁî®BRT_Timer2)
+    COMx_InitStructure.UART_BaudRate  = 115200ul;			//Ê≥¢ÁâπÁéá, ‰∏ÄËà¨ 110 ~ 115200
+    COMx_InitStructure.UART_RxEnable  = ENABLE;				//Êé•Êî∂ÂÖÅËÆ∏,   ENABLEÊàñDISABLE
+    COMx_InitStructure.BaudRateDouble = DISABLE;			//Ê≥¢ÁâπÁéáÂä†ÂÄç, ENABLEÊàñDISABLE
+    UART_Configuration(UART1, &COMx_InitStructure);		//ÂàùÂßãÂåñ‰∏≤Âè£1 UART1,UART2,UART3,UART4
 
-  	NVIC_UART1_Init(ENABLE,Priority_1);		//÷–∂œ πƒ‹, ENABLE/DISABLE; ”≈œ»º∂(µÕµΩ∏ﬂ) Priority_0,Priority_1,Priority_2,Priority_3
-    UART1_SW(UART1_SW_P30_P31);		// “˝Ω≈—°‘Ò, UART1_SW_P30_P31,UART1_SW_P36_P37,UART1_SW_P16_P17,UART1_SW_P43_P44
+  	NVIC_UART1_Init(ENABLE,Priority_1);		//‰∏≠Êñ≠‰ΩøËÉΩ, ENABLE/DISABLE; ‰ºòÂÖàÁ∫ß(‰ΩéÂà∞È´ò) Priority_0,Priority_1,Priority_2,Priority_3
+    UART1_SW(UART1_SW_P30_P31);		// ÂºïËÑöÈÄâÊã©, UART1_SW_P30_P31,UART1_SW_P36_P37,UART1_SW_P16_P17,UART1_SW_P43_P44
 
 
-	// ======================== UART2 
-    COMx_InitStructure.UART_Mode      = UART_8bit_BRTx;	//ƒ£ Ω, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,UART_9bit_BRTx
-    COMx_InitStructure.UART_BRT_Use   = BRT_Timer2;			//—°‘Ò≤®Ãÿ¬ ∑¢…˙∆˜, BRT_Timer1, BRT_Timer2 (◊¢“‚: ¥Æø⁄2πÃ∂® π”√BRT_Timer2)
-    COMx_InitStructure.UART_BaudRate  = 115200ul;			//≤®Ãÿ¬ , “ª∞„ 110 ~ 115200
-    COMx_InitStructure.UART_RxEnable  = ENABLE;				//Ω” ’‘ –Ì,   ENABLEªÚDISABLE
-    COMx_InitStructure.BaudRateDouble = DISABLE;			//≤®Ãÿ¬ º”±∂, ENABLEªÚDISABLE
-    UART_Configuration(UART2, &COMx_InitStructure);		//≥ı ºªØ¥Æø⁄1 UART1,UART2,UART3,UART4
+	// ======================== UART2
+    COMx_InitStructure.UART_Mode      = UART_8bit_BRTx;	//Ê®°Âºè
+    COMx_InitStructure.UART_BRT_Use   = BRT_Timer2;			//ÈÄâÊã©Ê≥¢ÁâπÁéáÂèëÁîüÂô®, BRT_Timer1, BRT_Timer2 (Ê≥®ÊÑè: ‰∏≤Âè£2Âõ∫ÂÆö‰ΩøÁî®BRT_Timer2)
+    COMx_InitStructure.UART_BaudRate  = 115200ul;			//Ê≥¢ÁâπÁéá, ‰∏ÄËà¨ 110 ~ 115200
+    COMx_InitStructure.UART_RxEnable  = ENABLE;				//Êé•Êî∂ÂÖÅËÆ∏,   ENABLEÊàñDISABLE
+    COMx_InitStructure.BaudRateDouble = DISABLE;			//Ê≥¢ÁâπÁéáÂä†ÂÄç, ENABLEÊàñDISABLE
+    UART_Configuration(UART2, &COMx_InitStructure);		//ÂàùÂßãÂåñ‰∏≤Âè£2
 
-  	NVIC_UART2_Init(ENABLE,Priority_1);		//÷–∂œ πƒ‹, ENABLE/DISABLE; ”≈œ»º∂(µÕµΩ∏ﬂ) Priority_0,Priority_1,Priority_2,Priority_3
-    UART2_SW(UART2_SW_P10_P11);		// “˝Ω≈—°‘Ò
+  	NVIC_UART2_Init(ENABLE,Priority_1);		//‰∏≠Êñ≠‰ΩøËÉΩ, ENABLE/DISABLE; ‰ºòÂÖàÁ∫ß(‰ΩéÂà∞È´ò) Priority_0,Priority_1,Priority_2,Priority_3
+    UART2_SW(UART2_SW_P10_P11);		// ÂºïËÑöÈÄâÊã©
 }
 
-void sys_init() {
-	EA = 1;			//  πƒ‹»´æ÷÷–∂œ
-	EAXSFR();		/* ¿©’πºƒ¥Ê∆˜∑√Œ  πƒ‹ */
-	
-	GPIO_config(); // IO≈‰÷√
-	UART_config(); // ¥Æø⁄≈‰÷√
-	
-	// ============= Õ‚…Ë≥ı ºªØ
-	Light_init();  	// ≥µµ∆
-	Key_init();	   	// ∂¿¡¢∞¥º¸
-	Battery_init(); // µÁ≥ÿµÁ—π
-	Buzzer_init();  // ∑‰√˘∆˜
-	Ultrasonic_init(); // ≥¨…˘≤®
-	Motors_init();	// µÁª˙
-	Track_init();	// —≤œﬂ
-	
+void sys_init(void) {
+	EA = 1;			// ‰ΩøËÉΩÂÖ®Â±Ä‰∏≠Êñ≠
+	EAXSFR();		/* Êâ©Â±ïÂØÑÂ≠òÂô®ËÆøÈóÆ‰ΩøËÉΩ */
+
+	GPIO_config(); // IOÈÖçÁΩÆ
+	UART_config(); // ‰∏≤Âè£ÈÖçÁΩÆ
+
+	// ============= È©±Âä®ÂàùÂßãÂåñ
+	Motors_init();	// ÁîµÊú∫
+	Track_init();	// Â∑°Ëøπ‰º†ÊÑüÂô®
+	Key_init();
+	Battery_init();
+
 	printf("==sys_init==\n");
+	printf("battery:%d\n",(int)Battery_get_voltage());
 }
