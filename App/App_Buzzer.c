@@ -4,7 +4,7 @@
 
 void Buzzer_Task() _task_ BUZZER_TASK_ID
 {
-    whiel(1){
+    while(1){
         os_wait2(K_SIG,5);
         Buzzer_alarm();
     }

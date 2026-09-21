@@ -93,23 +93,5 @@ Lib/                 STC 官方外设库（UART/PWM/GPIO/ADC/定时器等，勿�
 
 接收端以"超时 + 帧长 ≥ 8 + 帧头校验"三重判定完整帧；半截帧直接丢弃。
 
-## 构建与烧录
 
-1. **工具链**：Keil C51 + [EIDE (VSCode 插件)](https://em-ide.com/)，工程配置在 `.eide/eide.yml`
-2. **关键配置**：RAM/ROM 模式 LARGE；链接器 RTX = `RTX-Tiny`；主频 24MHz（`Lib/Config.h` 的 `MAIN_Fosc`）
-3. EIDE 中点击 Build（产物在 `build/`），烧录用 STC-ISP / 串口下载
 
-> 注意：根目录的 `stc8h8k64u.uvproj` 为旧版 Keil 工程，未包含 App 层文件；请以 EIDE 工程为准。
-
-## 调试技巧
-
-- 串口1（P30/P31，115200）输出调试信息（`printf` 已重定向）
-- 巡线偏移量打印：取消 `App_Track.c` 中 `printf("pos = %d\n", pos);` 的注释
-- 速度调节：巡线速度在 `App_Track.c` 的 `track_task`（经验值：低于 18 压差不够，车不动）
-- 电机混控比例：`Driver/Motors.c` 的 `LIMIT`（当前 0.3，全速压低系数）
-
-## 已知事项 / 待办
-
-- [ ] 摇杆响应优化：缩短 `TimeOutSet2`（[Lib/UART.h](Lib/UART.h)）、`Motors_apply` 改整数直写 CCR、加死区与非线性曲线
-- [ ] 差速混合归一化（斜向 45° 时输出被截顶，速度损失约 30%）
-- [ ] 新增文件为 UTF-8 编码，旧文件为 GBK；Keil 直接打开新文件注释可能显示乱码（VSCode 正常）

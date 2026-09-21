@@ -517,11 +517,6 @@
               <FilePath>.\App\App_RC.c</FilePath>
             </File>
             <File>
-              <FileName>App_RC.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\App\App_RC.h</FilePath>
-            </File>
-            <File>
               <FileName>App_System.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\App\App_System.c</FilePath>
@@ -532,19 +527,14 @@
               <FilePath>.\App\App_Track.c</FilePath>
             </File>
             <File>
-              <FileName>App_Track.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\App\App_Track.h</FilePath>
-            </File>
-            <File>
               <FileName>App_Vehicle.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\App\App_Vehicle.c</FilePath>
             </File>
             <File>
-              <FileName>App_Vehicle.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\App\App_Vehicle.h</FilePath>
+              <FileName>App_Buzzer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\App\App_Buzzer.c</FilePath>
             </File>
           </Files>
         </Group>
