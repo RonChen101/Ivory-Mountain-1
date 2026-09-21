@@ -1,68 +1,68 @@
 #include "Key.h"
 
-// ³õÊ¼»¯
+// åˆå§‹åŒ–
 void Key_init() {
-//	//×¼Ë«Ïò¿Ú	P05
-//	P0_MODE_IO_PU(GPIO_Pin_5);
+//	//å‡†åŒå‘å£	P05
+	P0_MODE_IO_PU(GPIO_Pin_5);
 	
-	// Â©¼«¿ªÂ·	P05
-	P0_MODE_OUT_OD(GPIO_Pin_5);
+	// // æ¼æå¼€è·¯	P05
+	// P0_MODE_OUT_OD(GPIO_Pin_5);
 
 }
 
 #define DOWN	0
 #define	UP		1
-static u8 last_state = UP; // Ì§Æğ
-// É¨Ãè°´¼ü
+static u8 last_state = UP; // æŠ¬èµ·
+// æ‰«ææŒ‰é”®
 void Key_scan() {
-#if 0
-	// ÉÏÒ»´ÎÌ§Æğ£¬µ±Ç°°´ÏÂ£¬°´ÏÂ²ÅÓĞĞ§
+#if 1
+	// ä¸Šä¸€æ¬¡æŠ¬èµ·ï¼Œå½“å‰æŒ‰ä¸‹ï¼ŒæŒ‰ä¸‹æ‰æœ‰æ•ˆ
 	if (last_state == UP && KEY == DOWN) {
-		last_state = DOWN; // ±£´æ×´Ì¬
+		last_state = DOWN; // ä¿å­˜çŠ¶æ€
 		
 		#if USE_KEYDOWN
-		Key_on_keydown(); // µ÷ÓÃ
+		Key_on_keydown(); // è°ƒç”¨
 		#endif
 	
-	// ÉÏÒ»´Î°´ÏÂ£¬µ±Ç°Ì§Æğ£¬Ì§Æğ²ÅÓĞĞ§
+	// ä¸Šä¸€æ¬¡æŒ‰ä¸‹ï¼Œå½“å‰æŠ¬èµ·ï¼ŒæŠ¬èµ·æ‰æœ‰æ•ˆ
 	} else if (last_state == DOWN && KEY == UP) {
-		last_state = UP; // ±£´æ×´Ì¬
+		last_state = UP; // ä¿å­˜çŠ¶æ€
 		#if USE_KEYUP
-		Key_on_keyup(); // µ÷ÓÃ
+		Key_on_keyup(); // è°ƒç”¨
 		#endif 
 	}
 #else
-	// ÉÏÒ»´ÎºÍµ±Ç°²»ÏàµÈ
+	// ä¸Šä¸€æ¬¡å’Œå½“å‰ä¸ç›¸ç­‰
 	if (last_state != KEY) {
-		last_state = KEY; // ±£´æ×´Ì¬
-		// ÅĞ¶Ïµ±Ç°×´Ì¬
-		if (KEY == DOWN) { // °´ÏÂ
+		last_state = KEY; // ä¿å­˜çŠ¶æ€
+		// åˆ¤æ–­å½“å‰çŠ¶æ€
+		if (KEY == DOWN) { // æŒ‰ä¸‹
 			#if USE_KEYDOWN
-			Key_on_keydown(); // µ÷ÓÃ
+			Key_on_keydown(); // è°ƒç”¨
 			#endif
-		} else { // Ì§Æğ
+		} else { // æŠ¬èµ·
 			#if USE_KEYUP
-			Key_on_keyup(); // µ÷ÓÃ
+			Key_on_keyup(); // è°ƒç”¨
 			#endif 
 		}
 	}
 #endif
 }
 
-// É¨Ãè°´¼ü£¬º¯ÊıÖ¸Õë»Øµ÷º¯Êı°æ±¾
-// ²»ÒªºÍKey_scan()Í¬Ê±Ê¹ÓÃ
+// æ‰«ææŒ‰é”®ï¼Œå‡½æ•°æŒ‡é’ˆå›è°ƒå‡½æ•°ç‰ˆæœ¬
+// ä¸è¦å’ŒKey_scan()åŒæ—¶ä½¿ç”¨
 void Key_scan2(void (*down)(), void (*up)()) {
-	// ÉÏÒ»´ÎºÍµ±Ç°²»ÏàµÈ
+	// ä¸Šä¸€æ¬¡å’Œå½“å‰ä¸ç›¸ç­‰
 	if (last_state != KEY) {
-		last_state = KEY; // ±£´æ×´Ì¬
-		// ÅĞ¶Ïµ±Ç°×´Ì¬
-		if (KEY == DOWN) { // °´ÏÂ
+		last_state = KEY; // ä¿å­˜çŠ¶æ€
+		// åˆ¤æ–­å½“å‰çŠ¶æ€
+		if (KEY == DOWN) { // æŒ‰ä¸‹
 
-			if (down != NULL) down(); // µ÷ÓÃ
+			if (down != NULL) down(); // è°ƒç”¨
 
-		} else { // Ì§Æğ
+		} else { // æŠ¬èµ·
 
-			if (up != NULL) up(); // µ÷ÓÃ
+			if (up != NULL) up(); // è°ƒç”¨
 
 		}
 	}

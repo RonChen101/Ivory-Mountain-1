@@ -15,7 +15,7 @@ static void	ADC_config(void)
 	NVIC_ADC_Init(DISABLE,Priority_0);		//中断使能, ENABLE/DISABLE; 优先级(低到高) Priority_0,Priority_1,Priority_2,Priority_3
 }
 
-// 初始化
+// 电池检查初始化
 void Battery_init() {
 	// P13 高阻输入
 	P1_MODE_IN_HIZ(GPIO_Pin_3);

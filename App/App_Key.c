@@ -1,10 +1,12 @@
 #include "App.h"
-#include "App_Vehicle.h"
+
 #include "Key.h"
+
 
 // 按键的回调函数：切换巡线开/关
 // 状态全部由 App_Vehicle 管理，
 void Key_on_keydown() {
+	printf("key down\n");
 	if (Vehicle_get_mode() == VEH_TRACKING) {
 		printf("==关闭巡线任务==\n");
 		Vehicle_set_mode(VEH_MANUAL);

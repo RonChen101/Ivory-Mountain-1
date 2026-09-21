@@ -6,7 +6,6 @@
 #include "NVIC.h"
 #include "Switch.h"
 #include "Motors.h"
-#include "App_Track.h"
 #include "Buzzer.h"
 #include "Key.h"
 #include "Battery.h"
@@ -65,5 +64,4 @@ void sys_init(void) {
 	Battery_init();
 
 	printf("==sys_init==\n");
-	printf("battery:%d\n",(int)Battery_get_voltage());
 }

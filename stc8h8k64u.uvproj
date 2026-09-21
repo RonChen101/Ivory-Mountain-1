@@ -324,7 +324,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>.\Driver;.\Lib;.\User</IncludePath>
+              <IncludePath>.\Driver;.\Lib;.\User;.\App</IncludePath>
             </VariousControls>
           </C51>
           <Ax51>
@@ -487,14 +487,64 @@
               <FilePath>.\Driver\Motors.h</FilePath>
             </File>
             <File>
-              <FileName>Track.c</FileName>
+              <FileName>TrackSensor.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Driver\Track.c</FilePath>
+              <FilePath>.\Driver\TrackSensor.c</FilePath>
             </File>
             <File>
-              <FileName>Track.h</FileName>
+              <FileName>TrackSensor.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\Driver\Track.h</FilePath>
+              <FilePath>.\Driver\TrackSensor.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>App</GroupName>
+          <Files>
+            <File>
+              <FileName>App.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\App\App.h</FilePath>
+            </File>
+            <File>
+              <FileName>App_Key.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\App\App_Key.c</FilePath>
+            </File>
+            <File>
+              <FileName>App_RC.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\App\App_RC.c</FilePath>
+            </File>
+            <File>
+              <FileName>App_RC.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\App\App_RC.h</FilePath>
+            </File>
+            <File>
+              <FileName>App_System.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\App\App_System.c</FilePath>
+            </File>
+            <File>
+              <FileName>App_Track.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\App\App_Track.c</FilePath>
+            </File>
+            <File>
+              <FileName>App_Track.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\App\App_Track.h</FilePath>
+            </File>
+            <File>
+              <FileName>App_Vehicle.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\App\App_Vehicle.c</FilePath>
+            </File>
+            <File>
+              <FileName>App_Vehicle.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\App\App_Vehicle.h</FilePath>
             </File>
           </Files>
         </Group>

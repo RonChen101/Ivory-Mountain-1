@@ -1,9 +1,10 @@
-#include "App_RC.h"
 #include "UART.h"
-#include "App_Vehicle.h"
+#include "App.h"
 #include "Buzzer.h"
 #include "Light.h"
 
+
+#if KEY_TEST 
 void uart1_recv_task() _task_  UART1_TASK_ID { // 串口1接受到的数据
 	u8 i;
 	while(1) {
@@ -24,6 +25,7 @@ void uart1_recv_task() _task_  UART1_TASK_ID { // 串口1接受到的数据
 		os_wait2(K_TMO, 1);
 	}
 }
+#endif
 
 /*****************************************
  0	1   2  3  4  5  6  7  数组索引
@@ -125,7 +127,7 @@ void uart2_recv_task() _task_  UART2_TASK_ID { // 串口2接收到的数据，�
 				if(COM2.RX_Cnt > 0) {
 
 					// 蓝牙数据的处理
-					RC_process_frame(RX2_Buffer, COM2.RX_Cnt);
+					// RC_process_frame(RX2_Buffer, COM2.RX_Cnt);
 
 					for(i=0; i<COM2.RX_Cnt; i++)	{
 						// 串口2收到的数据放在 RX2_Buffer[i]  通过串口1发送 TX1_write2buff

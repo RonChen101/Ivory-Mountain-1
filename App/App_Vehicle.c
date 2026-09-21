@@ -1,5 +1,5 @@
-#include "App_Vehicle.h"
-
+#include "Motors.h"
+#include "App.h"
 /* 车辆状态机：唯一能"指挥"电机的地方
    - 巡线任务的创建/删除只在这里发生（单一状态源）
    - 电机命令只有一个写者（RTX 任务 track_task + 下面的手动接口），
@@ -13,7 +13,9 @@ void Vehicle_set_mode(VehicleMode m) {
 
 	if (m == VEH_TRACKING) {
 		// 开启巡线任务
+		printf("[dbg]1 before create\n");	// TODO: 临时调试探针，定位复位点后删除
 		os_create_task(TRACK_TASK_ID);
+		printf("[dbg]2 after create\n");	// TODO: 临时调试探针
 	} else if (mode == VEH_TRACKING) {
 		// 从巡线退出：删除任务并停车（删除任务不会停电机，人为停止）
 		os_delete_task(TRACK_TASK_ID);
