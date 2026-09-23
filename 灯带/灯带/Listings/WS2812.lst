@@ -1,0 +1,147 @@
+C51 COMPILER V9.60.7.0   WS2812                                                            09/21/2026 09:00:10 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE WS2812
+OBJECT MODULE PLACED IN .\Objects\WS2812.obj
+COMPILER INVOKED BY: F:\KEIL\C51\BIN\C51.EXE WS2812.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\Driver;.\Lib;.\User) DEBUG OBJEC
+                    -TEXTEND PRINT(.\Listings\WS2812.lst) OBJECT(.\Objects\WS2812.obj)
+
+line level    source
+
+   1          #include "WS2812.h"
+   2          
+   3          // ============================================================
+   4          // 可配置参数
+   5          // ============================================================
+   6          #define LED_NUM   60            // 灯珠数量：60 颗
+   7          
+   8          // 每个 WS2812 数据位用 4 个 SPI 位表示，60 颗灯需要 60*24*4/8 = 720 字节
+   9          // 加上复位低电平的字节，缓冲区稍大一些
+  10          static unsigned char xdata spi_buffer[800];
+  11          
+  12          // ============================================================
+  13          // SPI 初始化（P1.3 MOSI，P1.4 MISO 输出 0，P1.5 SCLK）
+  14          // 关键：MISO 设为推挽输出低电平，MOSI 空闲时就会输出低电平
+  15          // ============================================================
+  16          static void SPI_Init(void)
+  17          {
+  18   1          P_SW2 |= 0x80;              // 使能扩展寄存器访问
+  19   1      
+  20   1          // ---------- 引脚配置 ----------
+  21   1          P1M1 &= ~0x38;              // P1.3 (MOSI), P1.4 (MISO), P1.5 (SCLK) 推挽输出
+  22   1          P1M0 |=  0x38;
+  23   1      
+  24   1          // MISO 输出低电平，MOSI 发送完成后会跟随 MISO 状态
+  25   1          P14 = 0;
+  26   1      
+  27   1          // ---------- SPI 配置 ----------
+  28   1          // SPCTL: SSIG=1, SPEN=1, DORD=0, MSTR=1, CPOL=0, CPHA=0, SPR=11 (4分频)
+  29   1          // 24MHz / 4 = 6MHz SPI 时钟，每个 SPI 位约 167ns
+  30   1          SPCTL = 0xD3;               // 1101 0011
+  31   1          SPSTAT = 0xC0;              // 清除标志位
+  32   1      }
+  33          
+  34          // ============================================================
+  35          // 发送一个字节（查询方式）
+  36          // ============================================================
+  37          static void SPI_SendByte(unsigned char dat)
+  38          {
+  39   1          SPDAT = dat;                // 写入数据，SPI 自动发送
+  40   1          while (!(SPSTAT & 0x80));   // 等待发送完成
+  41   1          SPSTAT = 0x80;              // 清除 SPIF 标志
+  42   1      }
+  43          
+  44          // ============================================================
+  45          // 把一个 WS2812 数据位编码成半个 SPI 字节
+  46          // 逻辑 1 → 0xC0（高4位为 1100，高电平时间长）
+  47          // 逻辑 0 → 0xFC（高4位为 1111，低电平时间长）
+  48          // ============================================================
+  49          static void EncodeBit(unsigned char bit_val, unsigned char *buf, unsigned int *idx)
+  50          {
+  51   1          if (bit_val)
+  52   1              buf[*idx] = 0xC0;       // 逻辑 1
+  53   1          else
+  54   1              buf[*idx] = 0xFC;       // 逻辑 0
+C51 COMPILER V9.60.7.0   WS2812                                                            09/21/2026 09:00:10 PAGE 2   
+
+  55   1          (*idx)++;
+  56   1      }
+  57          
+  58          // ============================================================
+  59          // 把一颗灯的颜色编码到 SPI 缓冲区
+  60          // WS2812 顺序：G → R → B
+  61          // ============================================================
+  62          static void EncodeColor(unsigned char r, unsigned char g, unsigned char b,
+  63                                  unsigned char *buf, unsigned int *idx)
+  64          {
+  65   1          unsigned char i;
+  66   1          unsigned char dat;
+  67   1      
+  68   1          // 绿色
+  69   1          dat = g;
+  70   1          for (i = 0; i < 8; i++) {
+  71   2              EncodeBit(dat & 0x80, buf, idx);
+  72   2              dat <<= 1;
+  73   2          }
+  74   1      
+  75   1          // 红色
+  76   1          dat = r;
+  77   1          for (i = 0; i < 8; i++) {
+  78   2              EncodeBit(dat & 0x80, buf, idx);
+  79   2              dat <<= 1;
+  80   2          }
+  81   1      
+  82   1          // 蓝色
+  83   1          dat = b;
+  84   1          for (i = 0; i < 8; i++) {
+  85   2              EncodeBit(dat & 0x80, buf, idx);
+  86   2              dat <<= 1;
+  87   2          }
+  88   1      }
+  89          
+  90          // ============================================================
+  91          // 对外唯一接口：初始化 + 设置全部灯为同一颜色
+  92          // ============================================================
+  93          void WS2812_Init_And_Set(unsigned char r, unsigned char g, unsigned char b)
+  94          {
+  95   1          unsigned int idx = 0;
+  96   1          unsigned int i;
+  97   1      
+  98   1          SPI_Init();                 // 初始化 SPI
+  99   1      
+ 100   1          // ---------- 编码 60 颗灯的颜色数据 ----------
+ 101   1          for (i = 0; i < LED_NUM; i++) {
+ 102   2              EncodeColor(r, g, b, spi_buffer, &idx);
+ 103   2          }
+ 104   1      
+ 105   1          EA = 0;                     // 关中断，保护时序
+ 106   1      
+ 107   1          // ---------- 发送数据 ----------
+ 108   1          for (i = 0; i < idx; i++) {
+ 109   2              SPI_SendByte(spi_buffer[i]);
+ 110   2          }
+ 111   1      
+ 112   1          // ---------- 复位信号：拉低 MOSI 保持 >50μs ----------
+ 113   1          // 通过发送 0x00 让 MOSI 保持低电平（MISO 已设为 0）
+ 114   1          for (i = 0; i < 100; i++) {
+ 115   2              SPI_SendByte(0x00);
+ 116   2          }
+C51 COMPILER V9.60.7.0   WS2812                                                            09/21/2026 09:00:10 PAGE 3   
+
+ 117   1      
+ 118   1          EA = 1;                     // 恢复中断
+ 119   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    298    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =    800    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      23
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
