@@ -1,0 +1,172 @@
+C51 COMPILER V9.60.7.0   MIAN                                                              09/22/2026 15:49:53 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MIAN
+OBJECT MODULE PLACED IN .\Objects\mian.obj
+COMPILER INVOKED BY: D:\C51\BIN\C51.EXE mian.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\mian.lst) TA
+                    -BS(2) OBJECT(.\Objects\mian.obj)
+
+line level    source
+
+   1          #include "Config.h"
+   2          #include "Delay.h"
+   3          #include "STC8H_PWM.h"
+   4          #include "UART.h"
+   5          #include  "NVIC.h"
+   6          #include "Switch.h" 
+   7          
+   8          
+   9          
+  10          
+  11          /*需求：P02 -> PWM7初始化：要求50hz->20ms*/
+  12          /*********************************
+  13          角度控制函数：service_set_angle(float angle)角度可以传0~180度的值
+  14          初始化舵机角度为90，接收串口消息。
+  15          收到消息0x00，角度减少10
+  16          收到消息0x01,角度增加10
+  17          *************************************/
+  18          
+  19          void UART_config(void) {
+  20   1        // >>> 记得添加 NVIC.c, UART.c, UART_Isr.c <<<
+  21   1          COMx_InitDefine   COMx_InitStructure;         //结构定义
+  22   1          COMx_InitStructure.UART_Mode      = UART_8bit_BRTx; //模式, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,U
+             -ART_9bit_BRTx
+  23   1          COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;     //选择波特率发生器, BRT_Timer1, BRT_Timer2 (注意: 串
+             -口2固定使用BRT_Timer2)
+  24   1          COMx_InitStructure.UART_BaudRate  = 115200ul;     //波特率, 一般 110 ~ 115200
+  25   1          COMx_InitStructure.UART_RxEnable  = ENABLE;       //接收允许,   ENABLE或DISABLE
+  26   1          COMx_InitStructure.BaudRateDouble = DISABLE;      //波特率加倍, ENABLE或DISABLE
+  27   1          UART_Configuration(UART1, &COMx_InitStructure);   //初始化串口1 UART1,UART2,UART3,UART4
+  28   1      
+  29   1          NVIC_UART1_Init(ENABLE,Priority_1);   //中断使能, ENABLE/DISABLE; 优先级(低到高) Priority_0,Priority_1,P
+             -riority_2,Priority_3
+  30   1          UART1_SW(UART1_SW_P30_P31);   // 引脚选择, UART1_SW_P30_P31,UART1_SW_P36_P37,UART1_SW_P16_P17,UART1_SW_
+             -P43_P44
+  31   1      }
+  32           
+  33          
+  34          
+  35          #define PREESCALER  10//意思就是如果原来主频是24M，那么寄存器会自动先除以10
+  36          #define FREQ        50//输出频率
+  37          #define PERIOD (MAIN_Fosc / FREQ/PREESCALER  )//值要小于65535
+  38          PWMx_Duty dutyB = {0};
+  39          PWMx_Duty dutyA = {0};
+  40          void  PWM_config(void)
+  41          {
+  42   1        PWMx_InitDefine   PWMx_InitStructure;
+  43   1        
+  44   1        // 配置PWM7
+  45   1        PWMx_InitStructure.PWM_Mode       = CCMRn_PWM_MODE1;  //模式,   CCMRn_FREEZE,CCMRn_MATCH_VALID,CCMRn_MATCH_I
+             -NVALID,CCMRn_ROLLOVER,CCMRn_FORCE_INVALID,CCMRn_FORCE_VALID,CCMRn_PWM_MODE1,CCMRn_PWM_MODE2
+  46   1        PWMx_InitStructure.PWM_Duty       = dutyB.PWM7_Duty;  //PWM占空比时间, 0~Period
+  47   1        PWMx_InitStructure.PWM_EnoSelect    = ENO7P;      //输出通道选择, ENO1P,ENO1N,ENO2P,ENO2N,ENO3P,ENO3N,ENO4P,
+             -ENO4N / ENO5P,ENO6P,ENO7P,ENO8P
+  48   1        PWM_Configuration(PWM7, &PWMx_InitStructure);     //初始化PWM,  PWMA,PWMB
+C51 COMPILER V9.60.7.0   MIAN                                                              09/22/2026 15:49:53 PAGE 2   
+
+  49   1        
+  50   1        // 配置PWM4
+  51   1        PWMx_InitStructure.PWM_Mode       = CCMRn_PWM_MODE1;  //模式,   CCMRn_FREEZE,CCMRn_MATCH_VALID,CCMRn_MATCH_I
+             -NVALID,CCMRn_ROLLOVER,CCMRn_FORCE_INVALID,CCMRn_FORCE_VALID,CCMRn_PWM_MODE1,CCMRn_PWM_MODE2
+  52   1        PWMx_InitStructure.PWM_Duty       = dutyA.PWM4_Duty;  //PWM占空比时间, 0~Period
+  53   1        PWMx_InitStructure.PWM_EnoSelect    = ENO4P;      //输出通道选择, ENO1P,ENO1N,ENO2P,ENO2N,ENO3P,ENO3N,ENO4P,
+             -ENO4N / ENO5P,ENO6P,ENO7P,ENO8P
+  54   1        PWM_Configuration(PWM4, &PWMx_InitStructure);     //初始化PWM,  PWMA,PWMB
+  55   1      
+  56   1        
+  57   1        // 配置PWMB
+  58   1        PWMx_InitStructure.PWM_Period   = PERIOD - 1;     //周期时间,   0~65535
+  59   1        PWMx_InitStructure.PWM_DeadTime = 0;          //死区发生器设置, 0~255
+  60   1        PWMx_InitStructure.PWM_MainOutEnable= ENABLE;     //主输出使能, ENABLE,DISABLE
+  61   1        PWMx_InitStructure.PWM_CEN_Enable   = ENABLE;     //使能计数器, ENABLE,DISABLE
+  62   1        PWM_Configuration(PWMB, &PWMx_InitStructure);     //初始化PWM通用寄存器,  PWMA,PWMB
+  63   1        
+  64   1          // 配置PWMA
+  65   1        PWMx_InitStructure.PWM_Period   = PERIOD - 1;     //周期时间,   0~65535
+  66   1        PWMx_InitStructure.PWM_DeadTime = 0;          //死区发生器设置, 0~255
+  67   1        PWMx_InitStructure.PWM_MainOutEnable= ENABLE;     //主输出使能, ENABLE,DISABLE
+  68   1        PWMx_InitStructure.PWM_CEN_Enable   = ENABLE;     //使能计数器, ENABLE,DISABLE
+  69   1        PWM_Configuration(PWMA, &PWMx_InitStructure);     //初始化PWM通用寄存器,  PWMA,PWMB
+  70   1      
+  71   1        //预分频系数
+  72   1        PWMB_Prescaler(PREESCALER - 1 );
+  73   1        PWMA_Prescaler(PREESCALER - 1 );
+  74   1        
+  75   1        
+  76   1        
+  77   1        
+  78   1        
+  79   1        
+  80   1        // 切换PWM通道
+  81   1        
+  82   1        PWM7_SW(PWM7_SW_P02);         //PWM7_SW_P22,PWM7_SW_P33,PWM7_SW_P02,PWM7_SW_P76
+  83   1        PWM4_USE_P26P27();          //PWM7_SW_P22,PWM7_SW_P33,PWM7_SW_P02,PWM7_SW_P76
+  84   1        // 初始化PWMB的中断
+  85   1        NVIC_PWM_Init(PWMB,DISABLE,Priority_0);
+  86   1        NVIC_PWM_Init(PWMA,DISABLE,Priority_0);
+  87   1      }
+  88          void servo_set_angle(float angle){
+  89   1          u16 duty;
+  90   1          u16 dutyA_val;
+  91   1      
+  92   1          duty = 500 + (angle * 2000 / 180.0f);
+  93   1          dutyB.PWM7_Duty = PERIOD * duty / 20000;
+  94   1          UpdatePwm(PWM7, &dutyB);
+  95   1      
+  96   1          if(angle > 90) angle = 90;
+  97   1          dutyA_val = 500 + (angle * 1000 / 90.0f);
+  98   1          dutyA.PWM4_Duty = PERIOD * dutyA_val / 20000;
+  99   1          UpdatePwm(PWM4, &dutyA);
+ 100   1      }
+ 101          int main(){
+ 102   1          float angleB = 90;
+ 103   1          float angleA = 45;
+ 104   1          float stepB  = 1;
+ 105   1          float stepA  = 0.5;
+ 106   1          u16 dutyB_val;
+ 107   1          u16 dutyA_val;
+ 108   1      
+C51 COMPILER V9.60.7.0   MIAN                                                              09/22/2026 15:49:53 PAGE 3   
+
+ 109   1          EAXSFR();
+ 110   1          UART_config();
+ 111   1          dutyB.PWM7_Duty = PERIOD * 1.5f / 20;
+ 112   1          dutyA.PWM4_Duty = PERIOD * 1.0f / 20;
+ 113   1          PWM_config();
+ 114   1          EA = 1;
+ 115   1      
+ 116   1          while(1){
+ 117   2              dutyB_val = 500 + (angleB * 2000 / 180.0f);
+ 118   2              dutyB.PWM7_Duty = PERIOD * dutyB_val / 20000;
+ 119   2              UpdatePwm(PWM7, &dutyB);
+ 120   2      
+ 121   2              dutyA_val = 500 + (angleA * 1000 / 90.0f);
+ 122   2              dutyA.PWM4_Duty = PERIOD * dutyA_val / 20000;
+ 123   2              UpdatePwm(PWM4, &dutyA);
+ 124   2      
+ 125   2              angleB += stepB;
+ 126   2              angleA += stepA;
+ 127   2      
+ 128   2              if(angleB >= 180) stepB = -1;
+ 129   2              else if(angleB <= 0) stepB = 1;
+ 130   2      
+ 131   2              if(angleA >= 90) stepA = -0.5;
+ 132   2              else if(angleA <= 0) stepA = 0.5;
+ 133   2      
+ 134   2              delay_ms(10);
+ 135   2          }
+ 136   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    797    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     32      38
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
